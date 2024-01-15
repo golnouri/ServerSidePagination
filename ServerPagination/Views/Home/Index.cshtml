@@ -1,0 +1,175 @@
+﻿@*
+    Server side Pagination
+    Developer: Mojtaba Golnouri
+    www.golnouri.ir
+*@
+
+<style>
+    #paging .active {
+        background-color: #EDF7FF;
+        color: silver;
+        cursor: no-drop;
+    }
+
+    #dataList {
+        background-color: #edf7ff;
+        border-radius: 7px;
+        direction: rtl;
+        border: 1px solid #9fc3df;
+    }
+
+        #dataList .data {
+            border-bottom: 1px solid white;
+            padding: 15px;
+        }
+
+    #paging {
+        margin-top: 10px;
+    }
+
+        #paging button {
+            background-color: #d1e2f0;
+            border: 1px solid #9fc3df;
+            border-radius: 3px;
+            margin-left: 3px;
+            font-size: 11pt;
+            padding: 8px;
+            padding-right: 8px;
+            padding-left: 8px;
+            padding-left: 11px;
+            padding-right: 11px;
+        }
+
+    #noResult {
+        display: none;
+    }
+
+    #searchinput {
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid silver;
+    }
+
+    #noResult {
+        text-align: center;
+        background-color: #f9f9f9;
+        direction: rtl;
+        padding-top: 12%;
+        padding-bottom: 12%;
+        border-radius: 7px;
+        border: 1px solid #dfe3e6;
+    }
+
+    .titlebar {
+        width: 50%;
+        direction: rtl;
+        text-align: left;
+        padding-top: 31px;
+    }
+</style>
+
+<section style="margin: 0 auto;width: 50%;">
+    <div style="display: flex;margin-bottom: 7px;">
+        <div class="titlebar">
+            <strong>نمایش لیست داده های تست</strong>
+        </div>
+        <div id="search" style="width:50%;direction: rtl;">
+            <div style="padding-bottom:5px;">جستجو در داده ها:</div>
+            <div><input type="text" id="searchinput" onkeyup="searchData()"></div>
+        </div>
+    </div>
+    <div id="dataList"></div>
+    <div id="noResult">نتیجه ای یافت نشد.</div>
+    <div id="paging"></div>
+</section>
+
+
+<script src="/lib/jquery/dist/jquery.min.js"></script>
+<script>
+    var currentPage = 1;
+    var itemsPerPage = 5;
+
+    function getData(pageNumber) {
+        $.ajax({
+            url: '/Home/GetData',
+            type: 'GET',
+            data: {
+                pageNumber: pageNumber,
+                itemsPerPage: itemsPerPage
+            },
+            success: function (data) {
+                console.log(data);
+                $('#dataList').empty();
+                $.each(data, function (index, item) {
+                    $('#dataList').append('<div class="data"><div style="display:flex"><div style="width:50%">' + item.name + '</div><div style="width:50%">' + item.area + '</div></div></div>');
+                });
+                createPaging();
+            }
+        });
+    }
+
+    function createPaging() {
+        var paging = document.getElementById('paging');
+        paging.innerHTML = "";
+        var totalItems = @ViewBag.GetAllDataCount;
+        var numPages = Math.ceil(totalItems / itemsPerPage);
+        for (var i = 1; i <= numPages; i++) {
+            var page = document.createElement('button');
+            page.innerHTML = i;
+            page.onclick = function () {
+                currentPage = this.innerHTML;
+                getData(currentPage);
+            };
+            if (i == currentPage) {
+                page.className = "active";
+            }
+            paging.appendChild(page);
+        }
+    }
+
+    function searchData() {
+        var input = document.getElementById('searchinput');
+        var filter = input.value;
+        if (filter === '') {
+            $('#noResult').hide();
+            getData(currentPage);
+            $('#dataList').show();
+
+        } else {
+            $.ajax({
+                url: '/Home/SearchData',
+                type: 'GET',
+                data: {
+                    search: filter
+                },
+                success: function (data) {
+                    if (data === null) {
+                        $('#noResult').fadeIn();
+                        $('#dataList').hide();
+                    }
+                    else {
+                        $('#dataList').empty();
+                        if (data.length === 0) {
+                            $('#dataList').hide();
+                            $('#noResult').fadeIn();
+                        } else {
+                            $('#noResult').fadeOut();
+                            $('#dataList').fadeIn();
+                            $.each(data, function (index, item) {
+                                $('#dataList').append('<div class="data"><div style="display:flex"><div style="width:50%">' + item.name + '</div><div style="width:50%">' + item.area + '</div></div></div>');
+                            });
+                        }
+                    }
+
+                }
+            });
+        }
+    }
+
+
+    document.getElementById('searchinput').oninput = searchData;
+
+
+    getData(currentPage);
+</script>
+
